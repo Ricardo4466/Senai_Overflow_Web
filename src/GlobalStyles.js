@@ -19,6 +19,20 @@ export const GlobalStyles = createGlobalStyle`
     box-sizing: border-box;
 }
 
+::-webkit-scrollbar{
+    width:4px;
+    background-color: var(--darkGray);
+
+}
+
+::-webkit-scrollbar-track{
+    background-color: var(--darkGray);
+}
+::-webkit-scrollbar-thumb{
+    background-color: var(--light);
+    border-radius: 2px;
+}
+
 body{
     font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
     color: var(--light);
@@ -67,6 +81,13 @@ a {
         :active{
             transform: scale(0.95);
         }
+    }
+
+    textarea{
+        resize:none;
+        padding:5px;
+        font-size:16px;
+        font-weight:bold;
     }
 
 `;

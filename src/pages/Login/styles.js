@@ -46,7 +46,7 @@ const loginAnimation = keyframes`
   }
 `;
 
-export const FormLogin = styled.div`
+export const FormLogin = styled.form`
 
 animation: ${loginAnimation} 0.7s;
 
