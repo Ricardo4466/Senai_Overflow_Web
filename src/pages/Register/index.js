@@ -1,44 +1,65 @@
 import { Container, FormLogin, Header, Body, Button } from "./styles";
 import Input from "../../components/input";
-
 import { Link, useHistory } from "react-router-dom";
 import { api } from "../../services/api";
 import { useState } from "react";
-function Register() {
+
+
+function Register() 
+{
   const history = useHistory();
 
-  const [register, setRegister] = useState({
+  const [registerStudent, setRegisterStudent] = useState({
+
     ra: "",
     name: "",
     email: "",
     password: "",
+    validPassword: "",
+
+   
   });
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => 
+  {
     e.preventDefault();
 
-    try {
-      const response = await api.post("/students", register);
+    try 
+    {
+
+      if(registerStudent.password !== registerStudent.validPassword)
+        return alert("Senhas Diferentes");
+
+      const response = await api.post("/students", {
+        ra: registerStudent.ra,
+        name: registerStudent.name,
+        email: registerStudent.email,
+        password: registerStudent.password,
+
+        
+      });
 
       console.log(response.data);
 
       // IMPLEMENTAR A AUTORIZAÇÃO
 
-      history.push("/");
-    } catch (error) {
+      history.push("/home");
+    } 
+    catch (error) 
+    {
       console.error(error);
       alert(error.response.data.error);
     }
   };
 
   const handleInput = (e) => {
-    setRegister({ ...register, [e.target.id]: e.target.value });
+    setRegisterStudent({ ...registerStudent, [e.target.id]: e.target.value });
   };
   return (
     <Container>
       <FormLogin onSubmit={handleSubmit}>
         <Header>
-          <h1>BEM VINDO AO SENAIOVERFLOW!</h1>
+          <h1>BEM VINDO AO SENAI OVERFLOW!</h1>
           <h2>INFORME SEUS DADOS</h2>
         </Header>
         <Body>
@@ -46,7 +67,7 @@ function Register() {
             id="ra"
             label="RA"
             type="text"
-            value={register.ra}
+            value={registerStudent.ra}
             handler={handleInput}
             required
           />
@@ -54,7 +75,7 @@ function Register() {
             id="name"
             label="Nome"
             type="text"
-            value={register.name}
+            value={registerStudent.name}
             handler={handleInput}
             required
           />
@@ -63,7 +84,7 @@ function Register() {
             label="E-mail"
             type="email"
             required
-            value={register.email}
+            value={registerStudent.email}
             handler={handleInput}
             required
           />
@@ -71,7 +92,7 @@ function Register() {
             id="password"
             label="senha"
             type="password"
-            value={register.password}
+            value={registerStudent.password}
             handler={handleInput}
             required
           />
@@ -79,11 +100,19 @@ function Register() {
             id="validPassword"
             label="Confirmar senha"
             type="password"
-            value={register.validPassword}
+            value={registerStudent.validPassword}
             handler={handleInput}
             required
           />
-          <Button>Enviar</Button>
+          <Button disabled={ 
+            registerStudent.ra === "" || 
+            registerStudent.name === "" || 
+            registerStudent.email === "" || 
+            registerStudent.password === "" ||
+            registerStudent.validPassword === ""}>
+              Enviar
+          </Button>
+
           <Link to="/">Ou se ja tem cadastro clique Aqui para Entrar!</Link>
         </Body>
       </FormLogin>

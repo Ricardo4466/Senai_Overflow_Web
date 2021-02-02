@@ -3,6 +3,7 @@ import { Container, FormLogin, Header, Body, Button} from "./styles";
 import Input from "../../components/input";
 import {api} from "../../services/api"
 import { useState } from "react";
+import { sigIn } from "../../services/security";
 
 function Login ()
 {
@@ -24,6 +25,8 @@ function Login ()
 
         // IMPLEMENTAR A AUTORIZAÇÃO
 
+        sigIn(response.data);
+
         history.push("/home");
         
     } 
@@ -42,7 +45,7 @@ function Login ()
         <Container>
             <FormLogin onSubmit={handleSubmit}>
                 <Header>
-                    <h1>BEM VINDO AO SENAIOVERFLOW!</h1>
+                    <h1>BEM VINDO AO SENAI OVERFLOW!</h1>
                     <h2>O SEU PORTAL DE RESPOSTAS</h2>
                 </Header>
                 <Body>
