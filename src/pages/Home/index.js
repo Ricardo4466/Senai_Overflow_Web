@@ -16,7 +16,8 @@ import {
 import imgProfile from "../../assets/foto_perfil.png";
 import logo from "../../assets/logo.png";
 import { api } from "../../services/api";
-import { sigIn, signOut } from "../../services/security";
+import { sigIn, signOut, getUser } from "../../services/security";
+
 function Profile() {
   return (
     <>
@@ -46,6 +47,59 @@ function Profile() {
 function Question({ question }) {
   console.log(question);
 
+  const qtdAnswer = question.Answers.length;
+
+  const [display, setDisplay] = useState("none");
+  const [storyAnswer, setStoryAnswer] = useState("");
+  const [answers, setAnswer] = useState(question.Answers);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const response = await api.post(`questions/${question.id}/answers`, {
+        answer: storyAnswer,
+      });
+
+      const aluno = getUser();
+
+        const answerAdded = {
+          id: response.data.id,
+          description: response.storyAnswer,
+          created_at: response.data.createdAt,
+          Student:{
+            id: aluno.StudentId,
+            name: aluno.name,
+          },
+        } 
+
+        setAnswer([...answers, answerAdded]);
+        
+        setStoryAnswer("");
+      console.log(response.data);
+    } catch (error) {
+      console.error(error);
+      alert(error.response.data.error);
+    }
+  };
+
+  // const handleInput = (e) => {
+  //   setStoryAnswer(e.target.value);
+
+
+  // };
+
+  const handleDisplay = () =>{
+    if(display === "none")
+    {
+      setDisplay("block");
+    }
+    else{
+      setDisplay("none");
+    }
+    
+  } 
+
   return (
     <QuestionCards>
       <header>
@@ -54,32 +108,48 @@ function Question({ question }) {
           alt="imagem de perfil"
         />
         <strong>Por: {question.Student.name}</strong>
-        <p>em 12/12/12 as 12:12</p>
+        <p>em {question.created_at}</p>
       </header>
       <section>
-        <strong>Título</strong>
-        {/* <p>{question.description}</p> */}
-        <img
-          src="https://www.freecodecamp.org/news/content/images/2020/02/Ekran-Resmi-2019-11-18-18.08.13.png"
-          alt="imagem da publicação"
-        />
+        <strong>{question.title}</strong>
+        <p>{question.description}</p>
+        <img src={question.image} alt="imagem da publicação" />
       </section>
       <footer>
-        <h1>12 Respostas</h1>
-        <section>
-          <header>
-            <img src={imgProfile} alt="imagem de perfil" />
-            <strong>Por ciclano </strong>
-            <p>12/12/12 as 12:12</p>
-          </header>
-          <p>Resposta para a pergunta</p>
-        </section>
-        <form>
-          <textarea placeholder="Responda essa duvida !" required></textarea>
+        <h1 onClick={handleDisplay}>
+          {qtdAnswer === 0 ? (
+            "Seja o primeiro a responder"
+          ) : (
+            <>
+              {qtdAnswer}
+              {" "}
+              {qtdAnswer > 1 ? "Respostas" : "Resposta"}
+            </>
+          )}
+        </h1>
+        {answers.map((a) => (
+          <Answer answers={a} display={display} />
+        ))}
+
+        <form onSubmit={handleSubmit}>
+          <textarea minLength={10} placeholder="Responda essa duvida !" required onChange={(e) => setStoryAnswer(e.target.value)}></textarea>
           <button>Enviar</button>
         </form>
       </footer>
     </QuestionCards>
+  );
+}
+
+function Answer({ answers, display }) {
+  return (
+    <section style={{display:display}}>
+      <header>
+        <img src={imgProfile} alt="imagem de perfil" />
+        <strong>Por {answers.Student.name} </strong>
+        <p>{answers.created_at}</p>
+      </header>
+      <p>{answers.answer}</p>
+    </section>
   );
 }
 

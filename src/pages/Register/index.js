@@ -4,30 +4,22 @@ import { Link, useHistory } from "react-router-dom";
 import { api } from "../../services/api";
 import { useState } from "react";
 
-
-function Register() 
-{
+function Register() {
   const history = useHistory();
 
   const [registerStudent, setRegisterStudent] = useState({
-
     ra: "",
     name: "",
     email: "",
     password: "",
     validPassword: "",
-
-   
   });
 
-  const handleSubmit = async (e) => 
-  {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    try 
-    {
-
-      if(registerStudent.password !== registerStudent.validPassword)
+    try {
+      if (registerStudent.password !== registerStudent.validPassword)
         return alert("Senhas Diferentes");
 
       const response = await api.post("/students", {
@@ -35,8 +27,6 @@ function Register()
         name: registerStudent.name,
         email: registerStudent.email,
         password: registerStudent.password,
-
-        
       });
 
       console.log(response.data);
@@ -44,9 +34,7 @@ function Register()
       // IMPLEMENTAR A AUTORIZAÇÃO
 
       history.push("/home");
-    } 
-    catch (error) 
-    {
+    } catch (error) {
       console.error(error);
       alert(error.response.data.error);
     }
@@ -104,13 +92,16 @@ function Register()
             handler={handleInput}
             required
           />
-          <Button disabled={ 
-            registerStudent.ra === "" || 
-            registerStudent.name === "" || 
-            registerStudent.email === "" || 
-            registerStudent.password === "" ||
-            registerStudent.validPassword === ""}>
-              Enviar
+          <Button
+            disabled={
+              registerStudent.ra === "" ||
+              registerStudent.name === "" ||
+              registerStudent.email === "" ||
+              registerStudent.password === "" ||
+              registerStudent.validPassword === ""
+            }
+          >
+            Enviar
           </Button>
 
           <Link to="/">Ou se ja tem cadastro clique Aqui para Entrar!</Link>
