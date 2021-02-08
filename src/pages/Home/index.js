@@ -60,7 +60,7 @@ function Question({ question }) {
   const [answers, setAnswer] = useState(question.Answers);
 
   useEffect(() => {
-    setStoryAnswer(question.Answers);
+    setStoryAnswers(question.Answers);
 
   }, [question.Answers])
 
