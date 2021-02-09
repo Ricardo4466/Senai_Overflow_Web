@@ -33,7 +33,11 @@ function Profile() {
     <>
       <section>
         <img src={imgProfile} alt="imagem de perfil" alt="imagem de perfil" />
-        <a href="#" />
+    
+        <a href="#">editar foto</a>
+      
+      
+        
       </section>
       <section>
         <strong>Nome:</strong>
@@ -51,24 +55,26 @@ function Profile() {
   );
 }
 
-function Question({ question }) {
+function Question({ question, setIsLoading }) {
   console.log(question);
 
-  
   const [display, setDisplay] = useState("none");
   const [storyAnswer, setStoryAnswer] = useState("");
   const [answers, setAnswer] = useState([]);
-  
+
   useEffect(() => {
     setAnswer(question.Answers);
-    
-  }, [question.Answers])
-  
+  }, [question.Answers]);
+
   const qtdAnswer = answers.length;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (storyAnswer.length < 10)
+      return alert("A Resposta deve ter no minimo 10 caracteres");
+
+    setIsLoading(true);
     try {
       const response = await api.post(`questions/${question.id}/answers`, {
         answer: storyAnswer,
@@ -89,10 +95,13 @@ function Question({ question }) {
       setAnswer([...answers, answerAdded]);
 
       setStoryAnswer("");
+      setIsLoading(false);
+
       console.log(response.data);
     } catch (error) {
       console.error(error);
-      alert(error.response.data.error);
+      alert(error);
+      setIsLoading(false);
     }
   };
 
@@ -153,7 +162,8 @@ function Question({ question }) {
             placeholder="Responda essa duvida !"
             required
             onChange={(e) => setStoryAnswer(e.target.value)}
-            value={storyAnswer}/>
+            value={storyAnswer}
+          />
           <button>Enviar</button>
         </form>
       </footer>
@@ -181,11 +191,7 @@ function Answer({ answers, display }) {
   );
 }
 
-function NewQuestion({handleReload}) {
-
-  
-
-
+function NewQuestion({ handleReload, setIsLoading }) {
   const [newQuestion, setNewQuestion] = useState({
     title: "",
     description: "",
@@ -254,7 +260,6 @@ function NewQuestion({handleReload}) {
     setNewQuestion({ ...newQuestion, [e.target.id]: e.target.value });
   };
 
-
   const handleAddNewQuestion = async (e) => {
     e.preventDefault();
 
@@ -262,15 +267,15 @@ function NewQuestion({handleReload}) {
 
     data.append("title", newQuestion.title);
     data.append("description", newQuestion.description);
-   
+
     const categories = categoriesSel.reduce((s, c) => (s += c.id + ","), "");
 
     data.append("categories", categories.substr(0, categories.length - 1));
 
     if (image) data.append("image", image);
-    if(newQuestion.gist) data.append("gist", newQuestion.gist);
+    if (newQuestion.gist) data.append("gist", newQuestion.gist);
 
-
+    setIsLoading(true);
     try {
       await api.post("/questions", data, {
         headers: {
@@ -281,6 +286,7 @@ function NewQuestion({handleReload}) {
       handleReload();
     } catch (error) {
       alert(error);
+      setIsLoading(false);
     }
   };
 
@@ -335,7 +341,6 @@ function NewQuestion({handleReload}) {
 }
 
 function Home() {
-
   const history = useHistory();
 
   const [questions, setQuestions] = useState([]);
@@ -347,15 +352,13 @@ function Home() {
   const [isloading, setIsLoading] = useState(false);
 
   useEffect(() => {
-
     const loadQuestions = async () => {
       setIsLoading(true);
       const response = await api.get("/feed", {});
 
       setQuestions(response.data);
       setIsLoading(false);
-
-      };
+    };
 
     loadQuestions();
   }, [reload]);
@@ -379,7 +382,10 @@ function Home() {
           title="Faça uma pergunta"
           handleClose={() => setShowNewQuestion(false)}
         >
-          <NewQuestion handleReload={handleReload}/>
+          <NewQuestion
+            handleReload={handleReload}
+            setIsLoading={setIsLoading}
+          />
         </Modal>
       )}
       <Container>
@@ -393,7 +399,7 @@ function Home() {
           </ProfileContainer>
           <FeedContainer>
             {questions.map((q) => (
-              <Question question={q} />
+              <Question question={q} setIsLoading={setIsLoading} />
             ))}
           </FeedContainer>
           <ActionsContainer>
