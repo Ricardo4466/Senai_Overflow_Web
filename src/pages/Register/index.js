@@ -3,9 +3,13 @@ import Input from "../../components/input";
 import { Link, useHistory } from "react-router-dom";
 import { api } from "../../services/api";
 import { useState } from "react";
+import { sigIn } from "../../services/security";
+import Loading from "../../components/Loading";
 
 function Register() {
   const history = useHistory();
+  const [isloading, setIsLoading] = useState(false);
+
 
   const [registerStudent, setRegisterStudent] = useState({
     ra: "",
@@ -18,23 +22,29 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    
+
     try {
-      if (registerStudent.password !== registerStudent.validPassword)
+      if (registerStudent.password !== registerStudent.validPassword && !isloading)
         return alert("Senhas Diferentes");
 
-      const response = await api.post("/students", {
+        setIsLoading(true);
+      const response = await api.post("/students",{
         ra: registerStudent.ra,
         name: registerStudent.name,
         email: registerStudent.email,
         password: registerStudent.password,
       });
 
-      console.log(response.data);
+      sigIn(response.data);
+      
+      setIsLoading(false);
 
       // IMPLEMENTAR A AUTORIZAÇÃO
 
       history.push("/home");
     } catch (error) {
+      setIsLoading(false);
       console.error(error);
       alert(error.response.data.error);
     }
@@ -44,6 +54,8 @@ function Register() {
     setRegisterStudent({ ...registerStudent, [e.target.id]: e.target.value });
   };
   return (
+    <>
+    {isloading && < Loading />}
     <Container>
       <FormLogin onSubmit={handleSubmit}>
         <Header>
@@ -108,6 +120,7 @@ function Register() {
         </Body>
       </FormLogin>
     </Container>
+    </>
   );
 }
 export default Register;

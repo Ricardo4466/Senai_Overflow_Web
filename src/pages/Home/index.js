@@ -24,6 +24,7 @@ import Input from "../../components/input";
 import Select from "../../components/Select";
 import imgProfile from "../../assets/foto_perfil.png";
 import { sigIn, signOut, getUser } from "../../services/security";
+import Loading from "../../components/Loading";
 
 function Profile() {
   const student = getUser();
@@ -53,16 +54,17 @@ function Profile() {
 function Question({ question }) {
   console.log(question);
 
-  const qtdAnswer = question.Answers.length;
-
+  
   const [display, setDisplay] = useState("none");
   const [storyAnswer, setStoryAnswer] = useState("");
-  const [answers, setAnswer] = useState(question.Answers);
-
+  const [answers, setAnswer] = useState([]);
+  
   useEffect(() => {
-    setStoryAnswers(question.Answers);
-
+    setAnswer(question.Answers);
+    
   }, [question.Answers])
+  
+  const qtdAnswer = answers.length;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -151,8 +153,7 @@ function Question({ question }) {
             placeholder="Responda essa duvida !"
             required
             onChange={(e) => setStoryAnswer(e.target.value)}
-            value={storyAnswer}
-          ></textarea>
+            value={storyAnswer}/>
           <button>Enviar</button>
         </form>
       </footer>
@@ -181,6 +182,9 @@ function Answer({ answers, display }) {
 }
 
 function NewQuestion({handleReload}) {
+
+  
+
 
   const [newQuestion, setNewQuestion] = useState({
     title: "",
@@ -331,6 +335,7 @@ function NewQuestion({handleReload}) {
 }
 
 function Home() {
+
   const history = useHistory();
 
   const [questions, setQuestions] = useState([]);
@@ -339,14 +344,18 @@ function Home() {
 
   const [showNewQuestion, setShowNewQuestion] = useState(false);
 
+  const [isloading, setIsLoading] = useState(false);
+
   useEffect(() => {
+
     const loadQuestions = async () => {
+      setIsLoading(true);
       const response = await api.get("/feed", {});
 
-      console.log(response.data);
-
       setQuestions(response.data);
-    };
+      setIsLoading(false);
+
+      };
 
     loadQuestions();
   }, [reload]);
@@ -364,6 +373,7 @@ function Home() {
 
   return (
     <>
+      {isloading && <Loading />}
       {showNewQuestion && (
         <Modal
           title="Faça uma pergunta"
