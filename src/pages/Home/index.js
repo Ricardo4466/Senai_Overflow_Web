@@ -23,21 +23,59 @@ import Modal from "../../components/Modal";
 import Input from "../../components/input";
 import Select from "../../components/Select";
 import imgProfile from "../../assets/foto_perfil.png";
-import { sigIn, signOut, getUser } from "../../services/security";
+import { sigIn, signOut, getUser, setUser } from "../../services/security";
 import Loading from "../../components/Loading";
 
-function Profile() {
-  const student = getUser();
+import { validSquiredImage} from "../../utils";
+
+function Profile({ setIsLoading, handleReload}) {
+
+  const [student, setStudent] = useState(getUser());
+
+
+    const handleImage = async (e) => {
+    if(!e.target.files[0]) return;
+
+    
+    try 
+    {
+      await validSquiredImage(e.target.files[0]);
+
+      const data = new FormData();
+      
+      setIsLoading(true);
+
+      data.append("image", e.target.files[0]);
+
+      const response = await api.post(`/students/${student.id}/images`, data);
+
+      setTimeout(() =>{
+        setStudent({...student, image: response.data.image});
+        handleReload();
+      }, 1000);
+
+      setUser({...student, image: response.data.image});
+
+     
+    } 
+    catch (error) 
+    {
+      setIsLoading(false);
+
+      alert(error)
+    }
+  };
 
   return (
     <>
       <section>
-        <img src={imgProfile} alt="imagem de perfil" alt="imagem de perfil" />
-    
-        <a href="#">editar foto</a>
-      
-      
-        
+        <img
+          src={student.image || imgProfile}
+          alt="imagem de perfil"
+          alt="imagem de perfil"
+        />
+        <label htmlFor="editImageProfile">editar foto</label>
+        <input id="editImageProfile" type="file" onChange={handleImage}/>
       </section>
       <section>
         <strong>Nome:</strong>
@@ -124,7 +162,7 @@ function Question({ question, setIsLoading }) {
     <QuestionCards>
       <header>
         <img
-          src="https://avatars.githubusercontent.com/u/67705062?s=460&u=8e763c9a1ae4d6e7bc588627f533f73212037a8b&v=4"
+          src={question.Student.image || imgProfile}
           alt="imagem de perfil"
         />
         <strong>
@@ -177,7 +215,7 @@ function Answer({ answers, display }) {
   return (
     <section style={{ display: display }}>
       <header>
-        <img src={imgProfile} alt="imagem de perfil" />
+        <img src={answers.Student.image || imgProfile} alt="imagem de perfil" />
         <strong>
           Por{" "}
           {student.studentId === answers.Student.id
@@ -395,7 +433,7 @@ function Home() {
         </Header>
         <Content>
           <ProfileContainer>
-            <Profile />
+            <Profile handleReload={handleReload} setIsLoading={setIsLoading}/>
           </ProfileContainer>
           <FeedContainer>
             {questions.map((q) => (

@@ -40,3 +40,12 @@ export const isSignedIn = () => {
   }
   return false;
 };
+
+export const setUser = (student) => {
+
+  const user = JSON.parse(localStorage.getItem(USER_KEY));
+
+  user.student = student;
+
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+};
