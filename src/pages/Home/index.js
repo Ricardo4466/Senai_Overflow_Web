@@ -1,6 +1,7 @@
 import { format, addDays } from "date-fns";
 import { useHistory } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
+import ReactEmbedGist from "react-embed-gist";
 
 import {
   Container,
@@ -13,6 +14,8 @@ import {
   Logo,
   IconSingOut,
   FormNewQuestion,
+  GistIcon,
+  ContainerGist,
 } from "./styles";
 
 import styled from "styled-components";
@@ -26,43 +29,36 @@ import imgProfile from "../../assets/foto_perfil.png";
 import { sigIn, signOut, getUser, setUser } from "../../services/security";
 import Loading from "../../components/Loading";
 
-import { validSquiredImage} from "../../utils";
+import { validSquiredImage } from "../../utils";
+import { FaGithub } from "react-icons/fa";
 
-function Profile({ setIsLoading, handleReload}) {
-
+function Profile({ setIsLoading, handleReload }) {
   const [student, setStudent] = useState(getUser());
 
+  const handleImage = async (e) => {
+    if (!e.target.files[0]) return;
 
-    const handleImage = async (e) => {
-    if(!e.target.files[0]) return;
-
-    
-    try 
-    {
+    try {
       await validSquiredImage(e.target.files[0]);
 
       const data = new FormData();
-      
+
       setIsLoading(true);
 
       data.append("image", e.target.files[0]);
 
       const response = await api.post(`/students/${student.id}/images`, data);
 
-      setTimeout(() =>{
-        setStudent({...student, image: response.data.image});
+      setTimeout(() => {
+        setStudent({ ...student, image: response.data.image });
         handleReload();
       }, 1000);
 
-      setUser({...student, image: response.data.image});
-
-     
-    } 
-    catch (error) 
-    {
+      setUser({ ...student, image: response.data.image });
+    } catch (error) {
       setIsLoading(false);
 
-      alert(error)
+      alert(error);
     }
   };
 
@@ -75,7 +71,7 @@ function Profile({ setIsLoading, handleReload}) {
           alt="imagem de perfil"
         />
         <label htmlFor="editImageProfile">editar foto</label>
-        <input id="editImageProfile" type="file" onChange={handleImage}/>
+        <input id="editImageProfile" type="file" onChange={handleImage} />
       </section>
       <section>
         <strong>Nome:</strong>
@@ -93,7 +89,7 @@ function Profile({ setIsLoading, handleReload}) {
   );
 }
 
-function Question({ question, setIsLoading }) {
+function Question({ question, setIsLoading, setCurrentGist }) {
   console.log(question);
 
   const [display, setDisplay] = useState("none");
@@ -174,6 +170,9 @@ function Question({ question, setIsLoading }) {
         <p>
           em {format(new Date(question.created_at), "dd/MM/yyyy 'às' HH:mm")}
         </p>
+        {question.gist && (
+          <GistIcon onClick={() => setCurrentGist(question.gist)} />
+        )}
       </header>
       <section>
         <strong>{question.title}</strong>
@@ -378,6 +377,21 @@ function NewQuestion({ handleReload, setIsLoading }) {
   );
 }
 
+function Gist({ gist, handleClose }) {
+  if (gist) {
+    const formatedGist = gist.split(".com/").pop();
+    return (
+      <Modal title="Exemplo de código" handleClose={() => handleClose(undefined)}>
+        <ContainerGist>
+          <ReactEmbedGist gist={formatedGist} />
+        </ContainerGist>
+      </Modal>
+    );
+  } else {
+    return null;
+  }
+}
+
 function Home() {
   const history = useHistory();
 
@@ -388,6 +402,8 @@ function Home() {
   const [showNewQuestion, setShowNewQuestion] = useState(false);
 
   const [isloading, setIsLoading] = useState(false);
+
+  const [currentGist, setCurrentGist] = useState(undefined);
 
   useEffect(() => {
     const loadQuestions = async () => {
@@ -415,6 +431,7 @@ function Home() {
   return (
     <>
       {isloading && <Loading />}
+      <Gist gist={currentGist} handleClose={setCurrentGist} />
       {showNewQuestion && (
         <Modal
           title="Faça uma pergunta"
@@ -433,11 +450,15 @@ function Home() {
         </Header>
         <Content>
           <ProfileContainer>
-            <Profile handleReload={handleReload} setIsLoading={setIsLoading}/>
+            <Profile handleReload={handleReload} setIsLoading={setIsLoading} />
           </ProfileContainer>
           <FeedContainer>
             {questions.map((q) => (
-              <Question question={q} setIsLoading={setIsLoading} />
+              <Question
+                question={q}
+                setIsLoading={setIsLoading}
+                setCurrentGist={setCurrentGist}
+              />
             ))}
           </FeedContainer>
           <ActionsContainer>
