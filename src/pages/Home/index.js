@@ -1,4 +1,4 @@
-import { format, addDays } from "date-fns";
+import { format } from "date-fns";
 import { useHistory } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import ReactEmbedGist from "react-embed-gist";
@@ -18,7 +18,7 @@ import {
   ContainerGist,
 } from "./styles";
 
-import styled from "styled-components";
+
 import Tag from "../../components/Tag";
 import logo from "../../assets/logo.png";
 import { api } from "../../services/api";
@@ -26,11 +26,11 @@ import Modal from "../../components/Modal";
 import Input from "../../components/input";
 import Select from "../../components/Select";
 import imgProfile from "../../assets/foto_perfil.png";
-import { sigIn, signOut, getUser, setUser } from "../../services/security";
+import {signOut, getUser, setUser } from "../../services/security";
 import Loading from "../../components/Loading";
 
 import { validSquiredImage } from "../../utils";
-import { FaGithub } from "react-icons/fa";
+import SearchBar from "../../components/SearchIcon";
 
 function Profile({ setIsLoading, handleReload }) {
   const [student, setStudent] = useState(getUser());
@@ -405,6 +405,8 @@ function Home() {
 
   const [currentGist, setCurrentGist] = useState(undefined);
 
+  const [search, setSearch] = useState(false);
+
   useEffect(() => {
     const loadQuestions = async () => {
       setIsLoading(true);
@@ -428,6 +430,20 @@ function Home() {
     setReload(Math.random());
   };
 
+
+  const handleSearch = (e) => {
+    const search = async () => {
+      // setIsLoading(true);
+      const response = await api.get("/search");
+
+      setSearch(response.data);
+      // setIsLoading(false);
+    };
+    search();
+  };
+
+
+
   return (
     <>
       {isloading && <Loading />}
@@ -446,6 +462,7 @@ function Home() {
       <Container>
         <Header>
           <Logo src={logo} alt="imagem de perfil" onClick={handleReload} />
+          <SearchBar label="Pesquisar" id="searchBar" handler={handleSearch} />
           <IconSingOut onClick={handleSingOut} />
         </Header>
         <Content>
