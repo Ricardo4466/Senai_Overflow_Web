@@ -18,7 +18,6 @@ import {
   ContainerGist,
 } from "./styles";
 
-
 import Tag from "../../components/Tag";
 import logo from "../../assets/logo.png";
 import { api } from "../../services/api";
@@ -26,11 +25,12 @@ import Modal from "../../components/Modal";
 import Input from "../../components/input";
 import Select from "../../components/Select";
 import imgProfile from "../../assets/foto_perfil.png";
-import {signOut, getUser, setUser } from "../../services/security";
+import { signOut, getUser, setUser } from "../../services/security";
 import Loading from "../../components/Loading";
 
 import { validSquiredImage } from "../../utils";
 import SearchBar from "../../components/SearchIcon";
+import { FaUniversalAccess } from "react-icons/fa";
 
 function Profile({ setIsLoading, handleReload }) {
   const [student, setStudent] = useState(getUser());
@@ -377,11 +377,17 @@ function NewQuestion({ handleReload, setIsLoading }) {
   );
 }
 
+ 
+
+
 function Gist({ gist, handleClose }) {
   if (gist) {
     const formatedGist = gist.split(".com/").pop();
     return (
-      <Modal title="Exemplo de código" handleClose={() => handleClose(undefined)}>
+      <Modal
+        title="Exemplo de código"
+        handleClose={() => handleClose(undefined)}
+      >
         <ContainerGist>
           <ReactEmbedGist gist={formatedGist} />
         </ContainerGist>
@@ -408,6 +414,7 @@ function Home() {
   const [search, setSearch] = useState(false);
 
   useEffect(() => {
+
     const loadQuestions = async () => {
       setIsLoading(true);
       const response = await api.get("/feed", {});
@@ -430,7 +437,6 @@ function Home() {
     setReload(Math.random());
   };
 
-
   const handleSearch = (e) => {
     const search = async () => {
       // setIsLoading(true);
@@ -442,6 +448,11 @@ function Home() {
     search();
   };
 
+const handleScroll = (e) =>{
+  const {scrollTop, clientHeight, scrollHeight} = e.target;
+  return console.log(scrollTop, clientHeight, scrollHeight);
+  
+}
 
 
   return (
@@ -469,7 +480,7 @@ function Home() {
           <ProfileContainer>
             <Profile handleReload={handleReload} setIsLoading={setIsLoading} />
           </ProfileContainer>
-          <FeedContainer>
+          <FeedContainer onScroll={handleScroll }>
             {questions.map((q) => (
               <Question
                 question={q}
