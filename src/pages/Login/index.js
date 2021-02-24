@@ -26,7 +26,7 @@ function Login() {
     setIsLoading(true);
 
     try {
-      const response = await api.post("sessions", login);
+      const response = await api.post("/sessions", login);
 
       console.log(response.data);
 

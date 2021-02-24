@@ -104,7 +104,7 @@ function Question({ question, setIsLoading, setCurrentGist }) {
 
     setIsLoading(true);
     try {
-      const response = await api.post(`questions/${question.id}/answers`, {
+      const response = await api.post(`/questions/${question.id}/answers`, {
         answer: storyAnswer,
       });
 
