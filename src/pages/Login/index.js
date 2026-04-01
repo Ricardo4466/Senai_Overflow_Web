@@ -1,13 +1,31 @@
-import { Link, useHistory } from "react-router-dom";
-import { Container, FormLogin, Header, Body, Button } from "./styles";
+import { useHistory } from "react-router-dom";
+import {
+  Container,
+  FormLogin,
+  Header,
+  Body,
+  Button,
+  AuthFooter,
+  AuthHint,
+  AuthLink,
+  AuthDivider,
+  GoogleBlock,
+} from "./styles";
 import Input from "../../components/input";
+import GoogleSignInButton from "../../components/GoogleSignInButton";
 import { api } from "../../services/api";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { sigIn } from "../../services/security";
 import Loading from "../../components/Loading";
 import Alert from "../../components/Alert";
+import { getActiveBranding } from "../../theme/branding";
 
 function Login() {
+  const {
+    loginBackground,
+    loginHeroTitle,
+    loginHeroSubtitle,
+  } = getActiveBranding();
 
   const history = useHistory();
 
@@ -20,6 +38,29 @@ function Login() {
 
   const [message, setMessage] = useState(undefined);
 
+  const showGoogleLogin = Boolean(process.env.REACT_APP_GOOGLE_CLIENT_ID);
+
+  const handleGoogleCredential = useCallback(
+    async (credential) => {
+      setIsLoading(true);
+      try {
+        const response = await api.post("/sessions/google", { credential });
+        sigIn(response.data);
+        history.push("/home");
+      } catch (error) {
+        console.error(error);
+        const description =
+          error.response?.data?.error ||
+          error.message ||
+          "Não foi possível entrar com Google.";
+        setMessage({ title: "Ops...", description });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [history]
+  );
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -27,21 +68,17 @@ function Login() {
 
     try {
       const response = await api.post("/sessions", login);
-
-      console.log(response.data);
-
-
-      // IMPLEMENTAR A AUTORIZAÇÃO
-
       sigIn(response.data);
-
-      setIsLoading(false);
-
       history.push("/home");
     } catch (error) {
-        setIsLoading(false);
       console.error(error);
-      setMessage({title: "Ops...", description: error.response.data.error})
+      const description =
+        error.response?.data?.error ||
+        error.message ||
+        "Não foi possível conectar à API. Verifique se o backend está em http://localhost:3333";
+      setMessage({ title: "Ops...", description });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -53,11 +90,11 @@ function Login() {
     <>
       {isloading && <Loading />}
         <Alert message={message} type="error" handleClose={setMessage}/>
-        <Container>
+        <Container $heroBg={loginBackground}>
         <FormLogin onSubmit={handleSubmit}>
           <Header>
-            <h1>BEM VINDO AO SENAI OVERFLOW!</h1>
-            <h2>O SEU PORTAL DE RESPOSTAS</h2>
+            <h1>{loginHeroTitle}</h1>
+            <h2>{loginHeroSubtitle}</h2>
           </Header>
           <Body>
             <Input
@@ -76,8 +113,19 @@ function Login() {
               handler={handleInput}
               required
             />
-            <Button>Entar</Button>
-            <Link to="/register"> ou Click aqui para sair!</Link>
+            <Button type="submit">Entrar</Button>
+            {showGoogleLogin && (
+              <>
+                <AuthDivider>ou</AuthDivider>
+                <GoogleBlock>
+                  <GoogleSignInButton onCredential={handleGoogleCredential} />
+                </GoogleBlock>
+              </>
+            )}
+            <AuthFooter>
+              <AuthHint>Não tem conta?</AuthHint>
+              <AuthLink to="/register">Criar cadastro</AuthLink>
+            </AuthFooter>
           </Body>
         </FormLogin>
       </Container>

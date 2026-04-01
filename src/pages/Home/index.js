@@ -1,8 +1,6 @@
 import { format } from "date-fns";
 import { useHistory } from "react-router-dom";
-import { useEffect, useState, useRef } from "react";
-import ReactEmbedGist from "react-embed-gist";
-
+import { useEffect, useState, useRef, Suspense, lazy, useCallback } from "react";
 import {
   Container,
   Header,
@@ -11,15 +9,32 @@ import {
   FeedContainer,
   ActionsContainer,
   QuestionCards,
+  QuestionCardWrap,
   Logo,
   IconSingOut,
   FormNewQuestion,
+  FileUploadWrap,
+  FileUploadInput,
+  FileUploadLabel,
+  FileUploadIcon,
+  FileUploadMeta,
+  FileUploadPreview,
   GistIcon,
   ContainerGist,
+  FeedEmptyState,
+  FeedEmptyIcon,
+  FeedEmptyTitle,
+  FeedEmptyText,
+  FeedEmptyButton,
+  FeedSearchEmpty,
+  FeedSearchIcon,
+  FeedSearchTitle,
+  FeedSearchHint,
+  FeedEndMessage,
 } from "./styles";
-
+import FeedSkeleton from "../../components/FeedSkeleton";
 import Tag from "../../components/Tag";
-import logo from "../../assets/logo.png";
+import { getActiveBranding } from "../../theme/branding";
 import { api } from "../../services/api";
 import Modal from "../../components/Modal";
 import Input from "../../components/input";
@@ -27,13 +42,14 @@ import Select from "../../components/Select";
 import imgProfile from "../../assets/foto_perfil.png";
 import { signOut, getUser, setUser } from "../../services/security";
 import Loading from "../../components/Loading";
-
 import { validSquiredImage } from "../../utils";
 import InputSearch from "../../components/InputSearch";
 import SpinnerLoading from "../../components/spinnerLoading";
 
+const EmbedGist = lazy(() => import("react-embed-gist"));
+
 function Profile({ setIsLoading, handleReload }) {
-  const [student, setStudent] = useState(getUser());
+  const [student, setStudent] = useState(() => getUser());
 
   const handleImage = async (e) => {
     if (!e.target.files[0]) return;
@@ -47,7 +63,10 @@ function Profile({ setIsLoading, handleReload }) {
 
       data.append("image", e.target.files[0]);
 
-      const response = await api.post(`/students/${student.id}/images`, data);
+      const response = await api.post(
+        `/students/${student.studentId}/images`,
+        data
+      );
 
       setTimeout(() => {
         setStudent({ ...student, image: response.data.image });
@@ -65,21 +84,27 @@ function Profile({ setIsLoading, handleReload }) {
   return (
     <>
       <section>
-        <img src={student.image || imgProfile} alt="imagem de perfil" />
+        <img
+          src={student?.image || imgProfile}
+          alt="imagem de perfil"
+          width={120}
+          height={120}
+          decoding="async"
+        />
         <label htmlFor="editImageProfile">editar foto</label>
         <input id="editImageProfile" type="file" onChange={handleImage} />
       </section>
       <section>
         <strong>Nome:</strong>
-        <p>{student.studentName}</p>
+        <p>{student?.studentName}</p>
       </section>
       <section>
         <strong>Ra</strong>
-        <p>{student.ra}</p>
+        <p>{student?.ra ?? "—"}</p>
       </section>
       <section>
         <strong>Email:</strong>
-        <p>{student.email}</p>
+        <p>{student?.email}</p>
       </section>
     </>
   );
@@ -115,8 +140,8 @@ function Question({ question, setIsLoading, setCurrentGist }) {
         answer: response.data.answer,
         created_at: response.data.createdAt,
         Student: {
-          id: aluno.studentId,
-          name: aluno.name,
+          id: aluno?.studentId,
+          name: aluno?.studentName,
         },
       };
 
@@ -154,10 +179,13 @@ function Question({ question, setIsLoading, setCurrentGist }) {
         <img
           src={question.Student.image || imgProfile}
           alt="imagem de perfil"
+          width={36}
+          height={36}
+          decoding="async"
         />
         <strong>
           Por{" "}
-          {student.studentId === question.Student.id
+          {student?.studentId === question.Student.id
             ? "Você"
             : question.Student.name}
         </strong>
@@ -171,7 +199,16 @@ function Question({ question, setIsLoading, setCurrentGist }) {
       <section>
         <strong>{question.title}</strong>
         <p>{question.description}</p>
-        <img src={question.image} alt="imagem da publicação" />
+        {question.image ? (
+          <img
+            src={question.image}
+            alt="imagem da publicação"
+            width={960}
+            height={540}
+            loading="lazy"
+            decoding="async"
+          />
+        ) : null}
       </section>
       <footer>
         <h1 onClick={handleDisplay}>
@@ -208,10 +245,16 @@ function Answer({ answers, display }) {
   return (
     <section style={{ display: display }}>
       <header>
-        <img src={answers.Student.image || imgProfile} alt="imagem de perfil" />
+        <img
+          src={answers.Student.image || imgProfile}
+          alt="imagem de perfil"
+          width={32}
+          height={32}
+          decoding="async"
+        />
         <strong>
           Por{" "}
-          {student.studentId === answers.Student.id
+          {student?.studentId === answers.Student.id
             ? "Você"
             : answers.Student.name}
         </strong>
@@ -266,15 +309,21 @@ function NewQuestion({ handleReload, setIsLoading }) {
   };
 
   const handleImage = (e) => {
-    if (e.target.files[0]) {
-      imageRef.current.src = URL.createObjectURL(e.target.files[0]);
-      imageRef.current.style.display = "flex";
+    const file = e.target.files?.[0];
+    const el = imageRef.current;
+    if (file) {
+      if (el) {
+        el.src = URL.createObjectURL(file);
+        el.style.display = "block";
+      }
+      setImage(file);
     } else {
-      imageRef.current.src = "";
-      imageRef.current.style.display = "none";
+      if (el) {
+        el.src = "";
+        el.style.display = "none";
+      }
+      setImage(null);
     }
-
-    setImage(e.target.files[0]);
   };
 
   const handleUnselCategory = (idUnsel) => {
@@ -293,6 +342,11 @@ function NewQuestion({ handleReload, setIsLoading }) {
 
   const handleAddNewQuestion = async (e) => {
     e.preventDefault();
+
+    if (categoriesSel.length === 0) {
+      alert("Selecione ao menos uma categoria.");
+      return;
+    }
 
     const data = new FormData();
 
@@ -350,7 +404,7 @@ function NewQuestion({ handleReload, setIsLoading }) {
       >
         <option value="">Selecione</option>
         {categories.map((c) => (
-          <option key={categories.id} value={c.id}>
+          <option key={c.id} value={c.id}>
             {c.description}
           </option>
         ))}
@@ -364,37 +418,63 @@ function NewQuestion({ handleReload, setIsLoading }) {
           ></Tag>
         ))}
       </div>
-      <input type="file" onChange={handleImage} />
-      <img alt="Pré-visualização" ref={imageRef} />
-      <button>Enviar</button>
+      <FileUploadWrap>
+        <FileUploadInput
+          id="new-question-image"
+          accept="image/*"
+          onChange={handleImage}
+        />
+        <FileUploadLabel htmlFor="new-question-image">
+          <FileUploadIcon aria-hidden />
+          Arraste ou clique para escolher uma imagem (opcional)
+        </FileUploadLabel>
+        {image && <FileUploadMeta>{image.name}</FileUploadMeta>}
+        <FileUploadPreview
+          alt="Pré-visualização da imagem anexada"
+          ref={imageRef}
+        />
+      </FileUploadWrap>
+      <button type="submit">Publicar pergunta</button>
     </FormNewQuestion>
   );
 }
 
 function Gist({ gist, handleClose }) {
-  if (gist) {
-    const formatedGist = gist.split(".com/").pop();
-    return (
-      <Modal
-        title="Exemplo de código"
-        handleClose={() => handleClose(undefined)}
-      >
-        <ContainerGist>
-          <ReactEmbedGist gist={formatedGist} />
-        </ContainerGist>
-      </Modal>
-    );
-  } else {
-    return null;
-  }
+  if (!gist) return null;
+  const formatedGist = gist.split(".com/").pop();
+  return (
+    <Modal
+      title="Exemplo de código"
+      handleClose={() => handleClose(undefined)}
+    >
+      <ContainerGist>
+        <Suspense
+          fallback={
+            <p style={{ color: "var(--light)" }}>Carregando exemplo de código…</p>
+          }
+        >
+          <EmbedGist gist={formatedGist} />
+        </Suspense>
+      </ContainerGist>
+    </Modal>
+  );
 }
 
 function Home() {
   const history = useHistory();
+  const { logo, logoAlt } = getActiveBranding();
 
   const [questions, setQuestions] = useState([]);
 
-  const [reload, setReload] = useState(null);
+  /** Incrementar para recarregar o feed desde a página 1 */
+  const [feedTick, setFeedTick] = useState(0);
+
+  const feedBusyRef = useRef(false);
+  /** Troca quando o feed é reiniciado (logo / limpar busca); invalida requests antigas */
+  const feedSessionRef = useRef(0);
+  const pageRef = useRef(1);
+  const totalRef = useRef(0);
+  const qlenRef = useRef(0);
 
   const [showNewQuestion, setShowNewQuestion] = useState(false);
 
@@ -404,39 +484,97 @@ function Home() {
 
   const [currentGist, setCurrentGist] = useState(undefined);
 
-  const [page, setPage] = useState(1);
-
   const [search, setSearch] = useState("");
 
   const [totalQuestions, setTotalQuestions] = useState(0);
 
-  const loadQuestions = async () => {
-    // SE JA ESTIVER BUSCANDO, NA BUSCA NOVAMENTE
-    if (isLoadingFeed) return;
-
-    // console.log(totalQuestions == questions.length, totalQuestions, questions.length);
-    // SE TIVER CHEGO NO FIM NÃO FAZ A REQUISIÇÃO NOVAMENTE
-    if (totalQuestions > 0 && totalQuestions == questions.length) return;
-
-    setIsLoadingFeed(true);
-
-    const response = await api.get("/feed", {
-      params: { page },
-    });
-
-    setPage(page + 1);
-
-    setQuestions([...questions, ...response.data]);
-
-
-    setTotalQuestions(response.headers["x-total-count"]);
-
-    setIsLoadingFeed(false);
-  };
+  const showFeedError = useCallback((err) => {
+    console.error(err);
+    const msg =
+      err.response?.data?.error ||
+      err.message ||
+      "Não foi possível carregar o feed. A API está rodando em http://localhost:3333 ?";
+    alert(msg);
+  }, []);
 
   useEffect(() => {
-    loadQuestions();
-  }, [reload]);
+    const session = ++feedSessionRef.current;
+
+    const run = async () => {
+      feedBusyRef.current = true;
+      setIsLoadingFeed(true);
+      try {
+        const p = pageRef.current;
+        const response = await api.get("/feed", {
+          params: { page: p },
+        });
+        if (session !== feedSessionRef.current) return;
+
+        pageRef.current = p + 1;
+        setQuestions((prev) => {
+          const next = [...prev, ...response.data];
+          qlenRef.current = next.length;
+          return next;
+        });
+
+        const count = response.headers["x-total-count"];
+        const total = count != null ? Number(count) : 0;
+        setTotalQuestions(total);
+        totalRef.current = total;
+      } catch (err) {
+        if (session === feedSessionRef.current) {
+          showFeedError(err);
+        }
+      } finally {
+        feedBusyRef.current = false;
+        if (session === feedSessionRef.current) {
+          setIsLoadingFeed(false);
+        }
+      }
+    };
+
+    run();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- só feedTick reinicia o feed (showFeedError é estável)
+  }, [feedTick]);
+
+  const loadNextPage = useCallback(async () => {
+    if (feedBusyRef.current) return;
+    if (totalRef.current > 0 && qlenRef.current >= totalRef.current) return;
+
+    const session = feedSessionRef.current;
+    feedBusyRef.current = true;
+    setIsLoadingFeed(true);
+    try {
+      const p = pageRef.current;
+      const response = await api.get("/feed", {
+        params: { page: p },
+      });
+      if (session !== feedSessionRef.current) return;
+
+      pageRef.current = p + 1;
+      setQuestions((prev) => {
+        const next = [...prev, ...response.data];
+        qlenRef.current = next.length;
+        return next;
+      });
+
+      const count = response.headers["x-total-count"];
+      if (count != null) {
+        const total = Number(count);
+        setTotalQuestions(total);
+        totalRef.current = total;
+      }
+    } catch (err) {
+      if (session === feedSessionRef.current) {
+        showFeedError(err);
+      }
+    } finally {
+      feedBusyRef.current = false;
+      if (session === feedSessionRef.current) {
+        setIsLoadingFeed(false);
+      }
+    }
+  }, [showFeedError]);
 
   const handleSignOut = () => {
     signOut();
@@ -445,31 +583,46 @@ function Home() {
   };
 
   const handleReload = () => {
+    feedBusyRef.current = false;
+    pageRef.current = 1;
+    totalRef.current = 0;
+    qlenRef.current = 0;
     setShowNewQuestion(false);
     setIsLoading(false);
-    setPage(1);
     setQuestions([]);
+    setTotalQuestions(0);
     setSearch("");
-    setReload(Math.random());
+    setFeedTick((t) => t + 1);
   };
 
   const feedScrollObserver = (e) => {
     const { scrollTop, clientHeight, scrollHeight } = e.target;
-
-    if (scrollTop + clientHeight > scrollHeight - 100 && search.length < 4)
-      loadQuestions();
+    if (search.length >= 4) return;
+    if (scrollHeight <= clientHeight + 5) return;
+    if (scrollTop + clientHeight <= scrollHeight - 100) return;
+    loadNextPage();
   };
 
   const handleSearch = async (e) => {
-    setSearch(e.target.value);
+    const value = e.target.value;
+    setSearch(value);
 
-    if (e.target.value.length === 0) setReload(Math.random());
+    if (value.length === 0) {
+      pageRef.current = 1;
+      totalRef.current = 0;
+      qlenRef.current = 0;
+      setQuestions([]);
+      setTotalQuestions(0);
+      feedBusyRef.current = false;
+      setFeedTick((t) => t + 1);
+      return;
+    }
 
-    if (e.target.value.length < 4) return;
+    if (value.length < 4) return;
 
     try {
       const response = await api.get("/questions", {
-        params: { search: e.target.value },
+        params: { search: value },
       });
 
       setQuestions(response.data);
@@ -484,7 +637,7 @@ function Home() {
       <Gist gist={currentGist} handleClose={setCurrentGist} />
       {showNewQuestion && (
         <Modal
-          title="Faça uma pergunta"
+          title="Nova pergunta"
           handleClose={() => setShowNewQuestion(false)}
         >
           <NewQuestion
@@ -495,7 +648,13 @@ function Home() {
       )}
       <Container>
         <Header>
-          <Logo src={logo} alt="imagem de perfil" onClick={handleReload} />
+          <Logo
+            src={logo}
+            alt={logoAlt}
+            width={48}
+            height={48}
+            onClick={handleReload}
+          />
           <InputSearch handler={handleSearch} value={search} />
           <IconSingOut onClick={handleSignOut} />
         </Header>
@@ -504,21 +663,45 @@ function Home() {
             <Profile handleReload={handleReload} setIsLoading={setIsLoading} />
           </ProfileContainer>
           <FeedContainer onScroll={feedScrollObserver}>
-            {questions.length === 0 &&
-              search.length > 3 &&
-              "Nenhuma Questão Encontrada !!"}
-            {questions.map((q) => (
-              <Question
-                key={questions.id}
-                question={q}
-                setIsLoading={setIsLoading}
-                setCurrentGist={setCurrentGist}
-              />
+            {questions.length === 0 && isLoadingFeed && <FeedSkeleton count={4} />}
+            {questions.length === 0 && !isLoadingFeed && search.length <= 3 && (
+              <FeedEmptyState>
+                <FeedEmptyIcon aria-hidden />
+                <FeedEmptyTitle>Nenhuma pergunta por aqui ainda</FeedEmptyTitle>
+                <FeedEmptyText>
+                  Publique uma dúvida para a comunidade ou volte mais tarde para ver
+                  novidades no feed.
+                </FeedEmptyText>
+                <FeedEmptyButton
+                  type="button"
+                  onClick={() => setShowNewQuestion(true)}
+                >
+                  Fazer uma pergunta
+                </FeedEmptyButton>
+              </FeedEmptyState>
+            )}
+            {questions.length === 0 && !isLoadingFeed && search.length > 3 && (
+              <FeedSearchEmpty>
+                <FeedSearchIcon aria-hidden />
+                <FeedSearchTitle>Nenhuma questão encontrada</FeedSearchTitle>
+                <FeedSearchHint>
+                  Tente outros termos ou uma busca mais curta.
+                </FeedSearchHint>
+              </FeedSearchEmpty>
+            )}
+            {questions.map((q, i) => (
+              <QuestionCardWrap key={q.id} $delayIndex={i}>
+                <Question
+                  question={q}
+                  setIsLoading={setIsLoading}
+                  setCurrentGist={setCurrentGist}
+                />
+              </QuestionCardWrap>
             ))}
-            {isLoadingFeed && <SpinnerLoading />}
-            {totalQuestions > 0 &&
-              totalQuestions == questions.length &&
-              "Isso é tudo"}
+            {isLoadingFeed && questions.length > 0 && <SpinnerLoading />}
+            {totalQuestions > 0 && totalQuestions === questions.length && (
+              <FeedEndMessage role="status">Isso é tudo</FeedEndMessage>
+            )}
             {/* <button onClick={loadQuestions}>ver mais</button> */}
           </FeedContainer>
           <ActionsContainer>

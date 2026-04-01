@@ -6,21 +6,20 @@ function Alert({ message, type, handleClose }) {
     const containeRef = useRef();
 
   useEffect(() => {
+    const el = containeRef.current;
+    if (!el) return;
+
     if (message) {
-
-        containeRef.current.style.width = "300px";
-
-        setTimeout(() =>{
-            handleClose(undefined);
-        }, 5000)
+      el.style.width = "300px";
+      const t = setTimeout(() => handleClose(undefined), 5000);
+      return () => clearTimeout(t);
     }
-    else{
-        containeRef.current.style.width = "0px";
-    }
+
+    el.style.width = "0px";
   }, [message, handleClose]);
 
   return (
-    <Container ref={containeRef}type={type}>
+    <Container ref={containeRef} type={type}>
       {message && (
         <>
           <span onClick={() => handleClose(undefined)}>&times;</span>

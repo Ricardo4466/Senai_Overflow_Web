@@ -1,12 +1,28 @@
-import { Container, FormLogin, Header, Body, Button } from "./styles";
+import {
+  Container,
+  FormLogin,
+  Header,
+  Body,
+  Button,
+  AuthFooter,
+  AuthHint,
+  AuthLink,
+} from "./styles";
 import Input from "../../components/input";
-import { Link, useHistory } from "react-router-dom";
+import { useHistory } from "react-router-dom";
 import { api } from "../../services/api";
 import { useState } from "react";
 import { sigIn } from "../../services/security";
 import Loading from "../../components/Loading";
+import { getActiveBranding } from "../../theme/branding";
 
 function Register() {
+  const {
+    loginBackground,
+    loginHeroTitle,
+    registerHeroSubtitle,
+  } = getActiveBranding();
+
   const history = useHistory();
   const [isloading, setIsLoading] = useState(false);
 
@@ -29,7 +45,7 @@ function Register() {
         return alert("Senhas Diferentes");
 
         setIsLoading(true);
-      const response = await api.post("/students",{
+      const response = await api.post("/students", {
         ra: registerStudent.ra,
         name: registerStudent.name,
         email: registerStudent.email,
@@ -37,16 +53,16 @@ function Register() {
       });
 
       sigIn(response.data);
-      
-      setIsLoading(false);
-
-      // IMPLEMENTAR A AUTORIZAÇÃO
-
       history.push("/home");
     } catch (error) {
-      setIsLoading(false);
       console.error(error);
-      alert(error.response.data.error);
+      const msg =
+        error.response?.data?.error ||
+        error.message ||
+        "Não foi possível conectar à API.";
+      alert(msg);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -55,12 +71,12 @@ function Register() {
   };
   return (
     <>
-    {isloading && < Loading />}
-    <Container>
+      {isloading && <Loading />}
+    <Container $heroBg={loginBackground}>
       <FormLogin onSubmit={handleSubmit}>
         <Header>
-          <h1>BEM VINDO AO SENAI OVERFLOW!</h1>
-          <h2>INFORME SEUS DADOS</h2>
+          <h1>{loginHeroTitle}</h1>
+          <h2>{registerHeroSubtitle}</h2>
         </Header>
         <Body>
           <Input
@@ -83,7 +99,6 @@ function Register() {
             id="email"
             label="E-mail"
             type="email"
-            required
             value={registerStudent.email}
             handler={handleInput}
             required
@@ -116,7 +131,10 @@ function Register() {
             Enviar
           </Button>
 
-          <Link to="/">Ou se ja tem cadastro clique Aqui para Entrar!</Link>
+          <AuthFooter>
+            <AuthHint>Já possui cadastro?</AuthHint>
+            <AuthLink to="/">Entrar</AuthLink>
+          </AuthFooter>
         </Body>
       </FormLogin>
     </Container>

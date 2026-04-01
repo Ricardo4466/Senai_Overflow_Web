@@ -1,11 +1,13 @@
-import Login from "./pages/Login"
-import Register from "./pages/Register"
-import Home from "./pages/Home"
 import { GlobalStyles } from "./GlobalStyles";
 import Router from "./router";
-
+import { normalizeTheme } from "./theme/themes";
+import { applyDocumentBranding } from "./theme/branding";
 
 function App() {
+  const themeId = normalizeTheme(process.env.REACT_APP_THEME);
+  document.documentElement.dataset.theme = themeId;
+  applyDocumentBranding(themeId);
+
   return (
     <>
       <GlobalStyles />
